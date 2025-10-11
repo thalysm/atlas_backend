@@ -33,12 +33,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_routes.router, prefix=settings.API_V1_PREFIX)
-app.include_router(exercise_routes.router, prefix=settings.API_V1_PREFIX)
-app.include_router(workout_package_routes.router, prefix=settings.API_V1_PREFIX)
-app.include_router(workout_session_routes.router, prefix=settings.API_V1_PREFIX)
-app.include_router(analytics_routes.router, prefix=settings.API_V1_PREFIX)
-app.include_router(competition_group_routes.router, prefix=settings.API_V1_PREFIX)
+app.include_router(auth_routes.router)
+app.include_router(exercise_routes.router)
+app.include_router(workout_package_routes.router)
+app.include_router(workout_session_routes.router)
+app.include_router(analytics_routes.router)
+app.include_router(competition_group_routes.router)
 
 
 @app.get("/")
