@@ -21,7 +21,7 @@ def get_package_use_cases() -> WorkoutPackageUseCases:
     return WorkoutPackageUseCases(package_repository)
 
 
-@router.post("/", response_model=dict, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=dict, status_code=status.HTTP_201_CREATED)
 async def create_package(
     request: CreatePackageRequest,
     user_id: str = Depends(get_current_user_id),
@@ -39,7 +39,7 @@ async def create_package(
     return {"id": package_id, "message": "Package created successfully"}
 
 
-@router.get("/", response_model=List[PackageResponse])
+@router.get("", response_model=List[PackageResponse])
 async def get_user_packages(
     user_id: str = Depends(get_current_user_id),
     package_use_cases: WorkoutPackageUseCases = Depends(get_package_use_cases),

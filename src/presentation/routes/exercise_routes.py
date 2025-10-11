@@ -16,7 +16,7 @@ def get_exercise_use_cases() -> ExerciseUseCases:
 
 
 @router.post(
-    "/",
+    "",
     response_model=dict,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(verify_admin)],
@@ -37,7 +37,7 @@ async def create_exercise(
     return {"id": exercise_id, "message": "Exercise created successfully"}
 
 
-@router.get("/", response_model=List[ExerciseResponse])
+@router.get("", response_model=List[ExerciseResponse])
 async def get_exercises(
     category: str = None,
     user_id: str = Depends(get_current_user_id),

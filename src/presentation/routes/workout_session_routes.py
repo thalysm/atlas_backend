@@ -30,7 +30,7 @@ def get_session_use_cases() -> WorkoutSessionUseCases:
     )
 
 
-@router.post("/", response_model=dict, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=dict, status_code=status.HTTP_201_CREATED)
 async def start_session(
     request: StartSessionRequest,
     user_id: str = Depends(get_current_user_id),
@@ -44,7 +44,7 @@ async def start_session(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.get("/", response_model=List[dict])
+@router.get("", response_model=List[dict])
 async def get_sessions(
     limit: int = Query(50, ge=1, le=100),
     skip: int = Query(0, ge=0),

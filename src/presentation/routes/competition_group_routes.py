@@ -32,7 +32,7 @@ def get_group_use_cases() -> CompetitionGroupUseCases:
     )
 
 
-@router.post("/", response_model=dict, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=dict, status_code=status.HTTP_201_CREATED)
 async def create_group(
     request: CreateGroupRequest,
     user_id: str = Depends(get_current_user_id),
@@ -62,7 +62,7 @@ async def join_group(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.get("/", response_model=List[GroupResponse])
+@router.get("", response_model=List[GroupResponse])
 async def get_user_groups(
     user_id: str = Depends(get_current_user_id),
     group_use_cases: CompetitionGroupUseCases = Depends(get_group_use_cases),
