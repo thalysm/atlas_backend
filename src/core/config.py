@@ -20,7 +20,10 @@ class Settings(BaseSettings):
     ADMIN_SECRET_KEY: str
     
     # CORS
-    CORS_ORIGINS: list = ["https://atlas.btreedevs.com.br"]
+    CORS_ORIGINS: list = [
+        "https://atlas.btreedevs.com.br",
+        "https://btreedevs.com.br",
+    ]
     ROOT_PATH: str = ""
     
     class Config:
