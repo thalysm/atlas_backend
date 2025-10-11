@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.so
+
+# Environments
+.venv/
+env/
+venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# FastAPI / Uvicorn
+*.db
+*.pid
+
+# dotenv
+.env
+
+# Pytest
+.cache/
+.pytest_cache/
+
+# Mypy / Pyright / Coverage
+.mypy_cache/
+.pyright/
+coverage.xml
+htmlcov/
+.coverage
+
+# Build
+dist/
+build/
+*.egg-info/
+
+
+# test
+tests/

@@ -1,0 +1,29 @@
+services:
+  backend:
+    build: .
+    container_name: atlas_backend
+    restart: always
+    ports:
+      - "8009:8000"
+    environment:
+      - MONGODB_URL=mongodb://mongo:27017
+      - MONGODB_DB_NAME=atlas_workout
+      - ROOT_PATH=/atlas
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=10080
+      - ADMIN_SECRET_KEY=${ADMIN_SECRET_KEY}
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:5
+    container_name: rachinha_mongo
+    restart: always
+    ports:
+      - "27027:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
