@@ -7,7 +7,7 @@ services:
       - "8009:8000"
     environment:
       - MONGODB_URL=mongodb://mongo:27017
-      - MONGODB_DB_NAME=atlas_workout
+      - MONGODB_DB_NAME=atlas
       - ROOT_PATH=/atlas
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=HS256
