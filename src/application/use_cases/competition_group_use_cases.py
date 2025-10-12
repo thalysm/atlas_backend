@@ -1,5 +1,6 @@
-from typing import List, Optional
-from datetime import datetime
+from typing import Dict, List, Optional
+from collections import defaultdict
+from datetime import datetime, timedelta
 from ...domain.entities.competition_group import CompetitionGroupEntity, GroupMember
 from ...infrastructure.repositories.competition_group_repository import (
     CompetitionGroupRepository,
@@ -87,7 +88,7 @@ class CompetitionGroupUseCases:
             for g in groups
         ]
 
-    async def get_group_details(self, group_id: str, user_id: str) -> Optional[dict]:
+    async def get_group_details(self, group_id: str, user_id: str, days: Optional[int] = None) -> Optional[dict]:
         """Get group details with leaderboard"""
         group = await self.group_repository.find_by_id(group_id)
         if not group:
@@ -97,9 +98,19 @@ class CompetitionGroupUseCases:
         if not any(m.user_id == user_id for m in group.members):
             raise ValueError("Not a member of this group")
 
+        # Define date range if days are specified
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days) if days else None
+
         # Update workout counts for all members
         for member in group.members:
-            sessions = await self.session_repository.find_by_user(member.user_id, limit=1000)
+            if start_date:
+                sessions = await self.session_repository.find_by_user_and_date_range(
+                    member.user_id, start_date, end_date
+                )
+            else:
+                sessions = await self.session_repository.find_by_user(member.user_id, limit=9999) # Large limit for all time
+            
             member.workout_count = len([s for s in sessions if s.is_completed])
 
         # Sort members by workout count
@@ -150,3 +161,43 @@ class CompetitionGroupUseCases:
             raise ValueError("Only the owner can delete the group")
 
         return await self.group_repository.delete(group_id)
+
+    async def get_group_calendar_data(self, group_id: str, user_id: str, year: int, month: int) -> Dict[str, List[Dict]]:
+        """Get workout sessions for all group members for a specific month"""
+        group = await self.group_repository.find_by_id(group_id)
+        if not group:
+            raise ValueError("Group not found")
+
+        if not any(m.user_id == user_id for m in group.members):
+            raise ValueError("Not a member of this group")
+
+        start_date = datetime(year, month, 1)
+        if month == 12:
+            end_date = datetime(year + 1, 1, 1)
+        else:
+            end_date = datetime(year, month + 1, 1)
+
+        calendar_data = defaultdict(list)
+
+        for member in group.members:
+            sessions = await self.session_repository.find_by_user_and_date_range(
+                member.user_id, start_date, end_date
+            )
+            for session in sessions:
+                if session.is_completed:
+                    day = session.start_time.date().isoformat()
+                    calendar_data[day].append(
+                        {
+                            "id": str(session.id),
+                            "package_name": session.package_name,
+                            "duration_minutes": session.duration_minutes,
+                            "start_time": session.start_time.isoformat(),
+                            "user_id": member.user_id,
+                            "username": member.username,
+                        }
+                    )
+        
+        for day in calendar_data:
+            calendar_data[day].sort(key=lambda x: x['start_time'])
+
+        return dict(calendar_data)

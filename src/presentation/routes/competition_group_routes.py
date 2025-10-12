@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from typing import Dict, List, Optional
 from ..schemas.competition_group_schemas import (
     CreateGroupRequest,
     JoinGroupRequest,
@@ -114,5 +114,39 @@ async def delete_group(
     try:
         await group_use_cases.delete_group(group_id, user_id)
         return {"message": "Group deleted successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
+@router.get("/{group_id}/calendar", response_model=Dict[str, List[Dict]])
+async def get_group_calendar(
+    group_id: str,
+    year: int = Query(..., ge=2020, le=2100),
+    month: int = Query(..., ge=1, le=12),
+    user_id: str = Depends(get_current_user_id),
+    group_use_cases: CompetitionGroupUseCases = Depends(get_group_use_cases),
+):
+    """Get group calendar data for a specific month"""
+    try:
+        calendar_data = await group_use_cases.get_group_calendar_data(group_id, user_id, year, month)
+        return calendar_data
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    
+
+@router.get("/{group_id}", response_model=GroupDetailsResponse)
+async def get_group_details(
+    group_id: str,
+    days: Optional[int] = Query(None, ge=1, le=365),
+    user_id: str = Depends(get_current_user_id),
+    group_use_cases: CompetitionGroupUseCases = Depends(get_group_use_cases),
+):
+    """Get group details with leaderboard"""
+    try:
+        group = await group_use_cases.get_group_details(group_id, user_id, days)
+        if not group:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Group not found"
+            )
+        return group
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
