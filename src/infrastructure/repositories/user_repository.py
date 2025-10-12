@@ -1,4 +1,5 @@
-from typing import Optional
+from typing import Any, Dict, Optional
+from bson import ObjectId
 from pymongo.database import Database
 from ...domain.entities.user import UserEntity
 
@@ -40,3 +41,11 @@ class UserRepository:
         if user_data:
             return UserEntity(**user_data)
         return None
+    
+    async def update(self, user_id: str, data_to_update: Dict[str, Any]) -> bool:
+        """Update user data"""
+        result = self.collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": data_to_update}
+        )
+        return result.modified_count > 0

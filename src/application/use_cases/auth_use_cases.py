@@ -1,5 +1,5 @@
 from typing import Optional
-from datetime import timedelta
+from datetime import datetime, timedelta
 from ...domain.entities.user import UserEntity
 from ...infrastructure.repositories.user_repository import UserRepository
 from ...core.security import verify_password, get_password_hash, create_access_token
@@ -96,3 +96,44 @@ class AuthUseCases:
             "name": user.name,
             "created_at": user.created_at.isoformat()
         }
+
+    async def update_user_details(self, user_id: str, name: str, email: str, username: str) -> bool:
+        """Update user details"""
+        current_user = await self.user_repository.find_by_id(user_id)
+        if not current_user:
+            raise ValueError("User not found")
+
+        # Check if new email is already taken by another user
+        if email.lower() != current_user.email.lower():
+            existing_email = await self.user_repository.find_by_email(email)
+            if existing_email:
+                raise ValueError("Email already registered")
+
+        # Check if new username is already taken by another user
+        if username.lower() != current_user.username.lower():
+            existing_username = await self.user_repository.find_by_username(username)
+            if existing_username:
+                raise ValueError("Username already taken")
+
+        update_data = {
+            "name": name,
+            "email": email,
+            "username": username,
+            "updated_at": datetime.utcnow()
+        }
+
+        return await self.user_repository.update(user_id, update_data)
+
+    async def change_password(self, user_id: str, current_password: str, new_password: str) -> bool:
+        """Change user password"""
+        user = await self.user_repository.find_by_id(user_id)
+        if not user:
+            raise ValueError("User not found")
+
+        if not verify_password(current_password, user.password_hash):
+            raise ValueError("Incorrect current password")
+
+        new_password_hash = get_password_hash(new_password)
+        update_data = {"password_hash": new_password_hash, "updated_at": datetime.utcnow()}
+
+        return await self.user_repository.update(user_id, update_data)

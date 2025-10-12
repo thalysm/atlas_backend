@@ -25,3 +25,12 @@ class UserResponse(BaseModel):
     username: str
     name: str
     created_at: str
+
+class UpdateUserRequest(BaseModel):
+    email: EmailStr
+    username: str = Field(..., min_length=3, max_length=30)
+    name: str = Field(..., min_length=1, max_length=100)
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=6)
