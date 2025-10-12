@@ -100,3 +100,17 @@ async def complete_session(
         return {"message": "Session completed successfully"}
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
+
+@router.delete("/{session_id}", response_model=dict)
+async def delete_session(
+    session_id: str,
+    user_id: str = Depends(get_current_user_id),
+    session_use_cases: WorkoutSessionUseCases = Depends(get_session_use_cases),
+):
+    """Cancel and delete a workout session"""
+    try:
+        await session_use_cases.delete_session(session_id, user_id)
+        return {"message": "Workout session cancelled successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
