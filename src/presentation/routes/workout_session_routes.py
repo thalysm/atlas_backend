@@ -55,6 +55,14 @@ async def get_sessions(
     sessions = await session_use_cases.get_user_sessions(user_id, limit, skip)
     return sessions
 
+@router.get("/all", response_model=List[dict])
+async def get_all_sessions(
+    user_id: str = Depends(get_current_user_id),
+    session_use_cases: WorkoutSessionUseCases = Depends(get_session_use_cases),
+):
+    """Get all sessions for the current user"""
+    sessions = await session_use_cases.get_all_user_sessions(user_id)
+    return sessions
 
 @router.get("/{session_id}", response_model=SessionResponse)
 async def get_session(
@@ -114,3 +122,16 @@ async def delete_session(
         return {"message": "Workout session cancelled successfully"}
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
+@router.post("/start-empty", response_model=dict, status_code=status.HTTP_201_CREATED)
+async def start_empty_session(
+    user_id: str = Depends(get_current_user_id),
+    session_use_cases: WorkoutSessionUseCases = Depends(get_session_use_cases),
+):
+    """Start a new empty workout session"""
+    try:
+        session_id = await session_use_cases.start_empty_session(user_id)
+        return {"id": session_id, "message": "Empty session started successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+

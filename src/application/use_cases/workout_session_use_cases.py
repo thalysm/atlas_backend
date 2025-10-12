@@ -182,3 +182,33 @@ class WorkoutSessionUseCases:
             }
             for s in sessions
         ]
+
+    async def start_empty_session(self, user_id: str) -> str:
+        """Starts a new empty workout session"""
+        session = WorkoutSessionEntity(
+            user_id=user_id,
+            package_id="empty_session", # Use a special identifier
+            package_name="Treino Livre",
+            exercises=[],
+            is_completed=False,
+        )
+
+        return await self.session_repository.create(session)
+
+    async def get_all_user_sessions(self, user_id: str) -> List[dict]:
+        """Get all sessions for a user, including active ones."""
+        sessions = await self.session_repository.find_by_user(user_id, limit=1000) # Get all sessions
+        return [
+            {
+                "id": str(s.id),
+                "package_id": s.package_id,
+                "package_name": s.package_name,
+                "start_time": s.start_time.isoformat(),
+                "end_time": s.end_time.isoformat() if s.end_time else None,
+                "duration_minutes": s.duration_minutes,
+                "is_completed": s.is_completed,
+                "exercise_count": len(s.exercises),
+            }
+            for s in sessions
+        ]
+        
