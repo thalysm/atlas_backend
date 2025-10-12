@@ -112,9 +112,6 @@ class WorkoutSessionUseCases:
         if not session or session.user_id != user_id:
             raise ValueError("Session not found or unauthorized")
 
-        if session.is_completed:
-            raise ValueError("Cannot delete a completed session")
-
         return await self.session_repository.delete(session_id)
 
     async def get_session(self, session_id: str, user_id: str) -> Optional[dict]:
