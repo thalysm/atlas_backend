@@ -7,13 +7,16 @@ from ...infrastructure.repositories.workout_session_repository import (
 from ...infrastructure.repositories.water_intake_repository import WaterIntakeRepository
 from ...infrastructure.repositories.user_repository import UserRepository
 from ...domain.entities.workout_session import StrengthSet
+from ...infrastructure.repositories.weight_history_repository import WeightHistoryRepository
+
 
 
 class AnalyticsUseCases:
-    def __init__(self, session_repository: WorkoutSessionRepository, water_intake_repository: WaterIntakeRepository, user_repository: UserRepository):
+    def __init__(self, session_repository: WorkoutSessionRepository, water_intake_repository: WaterIntakeRepository, user_repository: UserRepository, weight_history_repository: WeightHistoryRepository):
         self.session_repository = session_repository
         self.water_intake_repository = water_intake_repository
         self.user_repository = user_repository
+        self.weight_history_repository = weight_history_repository
 
     async def get_workout_stats(self, user_id: str, days: int = 30) -> Dict:
         """Get workout statistics for the last N days"""
@@ -154,3 +157,11 @@ class AnalyticsUseCases:
         # 35ml per kg of body weight
         recommendation = user.weight * 35
         return {"recommendation_ml": round(recommendation)}
+    
+    async def get_weight_progression(self, user_id: str, days: int) -> List[Dict]:
+        """Get daily weight entries for the last N days"""
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        entries = await self.weight_history_repository.find_by_user_and_date_range(user_id, start_date, end_date)
+        
+        return [{"date": entry.created_at.isoformat(), "weight": entry.weight} for entry in entries]

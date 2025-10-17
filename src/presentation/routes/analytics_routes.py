@@ -13,6 +13,7 @@ from ...infrastructure.repositories.workout_session_repository import (
 from ...infrastructure.repositories.water_intake_repository import WaterIntakeRepository
 from ...infrastructure.repositories.user_repository import UserRepository
 from ...application.use_cases.analytics_use_cases import AnalyticsUseCases
+from ...infrastructure.repositories.weight_history_repository import WeightHistoryRepository
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
@@ -22,7 +23,8 @@ def get_analytics_use_cases() -> AnalyticsUseCases:
     session_repository = WorkoutSessionRepository(db)
     water_repo = WaterIntakeRepository(db)
     user_repo = UserRepository(db)
-    return AnalyticsUseCases(session_repository, water_repo, user_repo)
+    weight_repo = WeightHistoryRepository(db)
+    return AnalyticsUseCases(session_repository, water_repo, user_repo, weight_repo)
 
 
 @router.get("/stats", response_model=WorkoutStatsResponse)
@@ -80,3 +82,13 @@ async def get_water_stats(
     """Get daily water consumption for the last N days"""
     stats = await analytics_use_cases.get_water_consumption_stats(user_id, days)
     return stats
+
+@router.get("/weight/progression", response_model=List[Dict])
+async def get_weight_progression(
+    days: int = Query(90, ge=1, le=365),
+    user_id: str = Depends(get_current_user_id),
+    analytics_use_cases: AnalyticsUseCases = Depends(get_analytics_use_cases),
+):
+    """Get weight progression data"""
+    progression = await analytics_use_cases.get_weight_progression(user_id, days)
+    return progression
