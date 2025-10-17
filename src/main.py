@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+
 from .core.config import settings
 from .core.database import connect_to_mongo, close_mongo_connection
 from .presentation.routes import (
@@ -10,6 +11,7 @@ from .presentation.routes import (
     workout_session_routes,
     analytics_routes,
     competition_group_routes,
+    water_intake_routes,
 )
 
 
@@ -39,6 +41,7 @@ app.include_router(workout_package_routes.router)
 app.include_router(workout_session_routes.router)
 app.include_router(analytics_routes.router)
 app.include_router(competition_group_routes.router)
+app.include_router(water_intake_routes.router)
 
 
 @app.get("/")

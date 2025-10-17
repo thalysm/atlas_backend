@@ -4,12 +4,16 @@ from collections import defaultdict, Counter
 from ...infrastructure.repositories.workout_session_repository import (
     WorkoutSessionRepository,
 )
+from ...infrastructure.repositories.water_intake_repository import WaterIntakeRepository
+from ...infrastructure.repositories.user_repository import UserRepository
 from ...domain.entities.workout_session import StrengthSet
 
 
 class AnalyticsUseCases:
-    def __init__(self, session_repository: WorkoutSessionRepository):
+    def __init__(self, session_repository: WorkoutSessionRepository, water_intake_repository: WaterIntakeRepository, user_repository: UserRepository):
         self.session_repository = session_repository
+        self.water_intake_repository = water_intake_repository
+        self.user_repository = user_repository
 
     async def get_workout_stats(self, user_id: str, days: int = 30) -> Dict:
         """Get workout statistics for the last N days"""
@@ -126,3 +130,27 @@ class AnalyticsUseCases:
                 )
 
         return dict(calendar_data)
+
+    async def get_water_consumption_stats(self, user_id: str, days: int) -> Dict:
+        """Get daily water consumption for the last N days"""
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        intakes = await self.water_intake_repository.find_by_user_and_date_range(user_id, start_date, end_date)
+        
+        consumption_by_day = defaultdict(int)
+        for intake in intakes:
+            day = intake.created_at.date().isoformat()
+            consumption_by_day[day] += intake.amount_ml
+            
+        return dict(consumption_by_day)
+
+    async def calculate_daily_water_recommendation(self, user_id: str) -> Dict:
+        """Calculate daily water recommendation based on user's weight"""
+        user = await self.user_repository.find_by_id(user_id)
+        if not user or not user.weight or user.weight <= 0:
+            # Default recommendation if no weight is available
+            return {"recommendation_ml": 2000}
+        
+        # 35ml per kg of body weight
+        recommendation = user.weight * 35
+        return {"recommendation_ml": round(recommendation)}
