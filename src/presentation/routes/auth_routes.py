@@ -63,7 +63,11 @@ async def update_me(
             user_id=user_id,
             name=request.name,
             email=request.email,
-            username=request.username
+            username=request.username,
+            height=request.height,
+            weight=request.weight,
+            gender=request.gender,
+            birth_date=request.birth_date
         )
         if success:
             user = await auth_use_cases.get_current_user(user_id)

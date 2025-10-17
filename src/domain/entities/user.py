@@ -39,6 +39,10 @@ class UserEntity(BaseModel):
     username: str
     password_hash: str
     name: str
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    gender: Optional[str] = None
+    birth_date: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
