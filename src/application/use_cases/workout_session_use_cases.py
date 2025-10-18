@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
+
 from ...domain.entities.workout_session import (
     WorkoutSessionEntity,
     ExerciseLog,
@@ -13,7 +14,64 @@ from ...infrastructure.repositories.workout_package_repository import (
     WorkoutPackageRepository,
 )
 from ...infrastructure.repositories.exercise_repository import ExerciseRepository
+from ...infrastructure.repositories.user_repository import UserRepository
 
+# --- Tabela básica de METs ---
+MET_VALUES = {
+    "strength": 6.0,      # musculação moderada/intensa
+    "cardio": 7.0,        # cardio moderado (corrida, bicicleta, etc)
+    "default": 5.0        # fallback
+}
+
+def calculate_calories(session_data: dict, weight_kg: Optional[float]) -> Optional[float]:
+    """
+    Calcula calorias queimadas com base nos dados da sessão de treino.
+    Retorna None se o peso não for fornecido ou inválido.
+    """
+    if not weight_kg or weight_kg <= 0:
+        return None # Retorna None se não houver peso válido
+
+    exercises = session_data.get("exercises", [])
+    duration_total_session = session_data.get("duration_minutes", None)
+    total_calories = 0
+    total_estimated_duration_from_exercises = 0
+    calories_details = [] # Para ajuste proporcional
+
+    for exercise in exercises:
+        ex_type = exercise.get("type", "default")
+        duration = 0
+
+        if ex_type == "cardio" and exercise.get("sets"):
+            # Usa a duração real do cardio se disponível
+            cardio_duration = sum(s.get("duration_minutes", 0) for s in exercise["sets"] if isinstance(s.get("duration_minutes"), (int, float)))
+            duration = cardio_duration if cardio_duration > 0 else 10 # Fallback 10 min se duração for 0 ou não encontrada
+        elif ex_type == "strength":
+            # Média de 3 minutos por série (execução + descanso)
+            num_sets = len(exercise.get("sets", []))
+            duration = num_sets * 3
+        else: # Default or unknown type
+            num_sets = len(exercise.get("sets", []))
+            duration = max(num_sets * 2, 5) # Fallback menor para tipos desconhecidos
+
+        # Pular se a duração for 0
+        if duration <= 0:
+            continue
+
+        # Obter MET
+        met = MET_VALUES.get(ex_type, MET_VALUES["default"])
+
+        # Calorias = MET * peso (kg) * tempo (h)
+        calories = met * weight_kg * (duration / 60)
+        calories_details.append({"duration": duration, "calories": calories})
+        total_estimated_duration_from_exercises += duration
+        total_calories += calories
+
+    # Ajuste proporcional se a duração total da SESSÃO estiver disponível e for diferente da soma das durações estimadas
+    if duration_total_session and total_estimated_duration_from_exercises > 0 and duration_total_session != total_estimated_duration_from_exercises:
+        adjustment = duration_total_session / total_estimated_duration_from_exercises
+        total_calories *= adjustment
+
+    return round(total_calories, 1)
 
 class WorkoutSessionUseCases:
     def __init__(
@@ -21,10 +79,12 @@ class WorkoutSessionUseCases:
         session_repository: WorkoutSessionRepository,
         package_repository: WorkoutPackageRepository,
         exercise_repository: ExerciseRepository,
+        user_repository: UserRepository,
     ):
         self.session_repository = session_repository
         self.package_repository = package_repository
         self.exercise_repository = exercise_repository
+        self.user_repository = user_repository
 
     async def start_session(self, user_id: str, package_id: str) -> str:
         """Start a new workout session"""
@@ -120,6 +180,13 @@ class WorkoutSessionUseCases:
         if not session or session.user_id != user_id:
             return None
 
+        user = await self.user_repository.find_by_id(user_id) # Buscar usuário para pegar o peso
+        session_dict = session.model_dump() # Converter Pydantic model para dict
+
+        # Calcular calorias
+        total_calories = calculate_calories(session_dict, user.weight if user else None)
+
+        # Formatar resposta
         return {
             "id": str(session.id),
             "user_id": session.user_id,
@@ -139,6 +206,7 @@ class WorkoutSessionUseCases:
             "end_time": session.end_time.isoformat() if session.end_time else None,
             "duration_minutes": session.duration_minutes,
             "is_completed": session.is_completed,
+            "total_calories": total_calories # Adicionar calorias
         }
 
     async def get_user_sessions(
@@ -146,8 +214,14 @@ class WorkoutSessionUseCases:
     ) -> List[dict]:
         """Get all sessions for a user"""
         sessions = await self.session_repository.find_by_user(user_id, limit, skip)
-        return [
-            {
+        user = await self.user_repository.find_by_id(user_id) # Buscar usuário uma vez
+        weight = user.weight if user else None
+
+        results = []
+        for s in sessions:
+            session_dict = s.model_dump()
+            total_calories = calculate_calories(session_dict, weight)
+            results.append({
                 "id": str(s.id),
                 "package_id": s.package_id,
                 "package_name": s.package_name,
@@ -156,9 +230,9 @@ class WorkoutSessionUseCases:
                 "duration_minutes": s.duration_minutes,
                 "is_completed": s.is_completed,
                 "exercise_count": len(s.exercises),
-            }
-            for s in sessions
-        ]
+                "total_calories": total_calories, # Adicionar calorias
+            })
+        return results
 
     async def get_sessions_by_date_range(
         self, user_id: str, start_date: datetime, end_date: datetime
@@ -167,8 +241,14 @@ class WorkoutSessionUseCases:
         sessions = await self.session_repository.find_by_user_and_date_range(
             user_id, start_date, end_date
         )
-        return [
-            {
+        user = await self.user_repository.find_by_id(user_id) # Buscar usuário uma vez
+        weight = user.weight if user else None
+
+        results = []
+        for s in sessions:
+             session_dict = s.model_dump()
+             total_calories = calculate_calories(session_dict, weight)
+             results.append({
                 "id": str(s.id),
                 "package_id": s.package_id,
                 "package_name": s.package_name,
@@ -176,9 +256,9 @@ class WorkoutSessionUseCases:
                 "end_time": s.end_time.isoformat() if s.end_time else None,
                 "duration_minutes": s.duration_minutes,
                 "is_completed": s.is_completed,
-            }
-            for s in sessions
-        ]
+                "total_calories": total_calories, # Adicionar calorias
+            })
+        return results
 
     async def start_empty_session(self, user_id: str) -> str:
         """Starts a new empty workout session"""
@@ -195,8 +275,14 @@ class WorkoutSessionUseCases:
     async def get_all_user_sessions(self, user_id: str) -> List[dict]:
         """Get all sessions for a user, including active ones."""
         sessions = await self.session_repository.find_by_user(user_id, limit=1000) # Get all sessions
-        return [
-            {
+        user = await self.user_repository.find_by_id(user_id) # Buscar usuário uma vez
+        weight = user.weight if user else None
+
+        results = []
+        for s in sessions:
+            session_dict = s.model_dump()
+            total_calories = calculate_calories(session_dict, weight)
+            results.append({
                 "id": str(s.id),
                 "package_id": s.package_id,
                 "package_name": s.package_name,
@@ -205,7 +291,7 @@ class WorkoutSessionUseCases:
                 "duration_minutes": s.duration_minutes,
                 "is_completed": s.is_completed,
                 "exercise_count": len(s.exercises),
-            }
-            for s in sessions
-        ]
+                "total_calories": total_calories,
+            })
+        return results
         

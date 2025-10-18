@@ -43,3 +43,4 @@ class SessionResponse(BaseModel):
     end_time: Optional[str]
     duration_minutes: Optional[int]
     is_completed: bool
+    total_calories: Optional[float] = None

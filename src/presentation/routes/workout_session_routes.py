@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import List
 from datetime import datetime
+
 from ..schemas.workout_session_schemas import (
     StartSessionRequest,
     UpdateSessionRequest,
@@ -16,6 +17,7 @@ from ...infrastructure.repositories.workout_package_repository import (
 )
 from ...infrastructure.repositories.exercise_repository import ExerciseRepository
 from ...application.use_cases.workout_session_use_cases import WorkoutSessionUseCases
+from ...infrastructure.repositories.user_repository import UserRepository
 
 router = APIRouter(prefix="/sessions", tags=["Workout Sessions"])
 
@@ -25,8 +27,9 @@ def get_session_use_cases() -> WorkoutSessionUseCases:
     session_repository = WorkoutSessionRepository(db)
     package_repository = WorkoutPackageRepository(db)
     exercise_repository = ExerciseRepository(db)
+    user_repository = UserRepository(db) 
     return WorkoutSessionUseCases(
-        session_repository, package_repository, exercise_repository
+        session_repository, package_repository, exercise_repository, user_repository 
     )
 
 
