@@ -13,6 +13,7 @@ from .presentation.routes import (
     competition_group_routes,
     water_intake_routes,
     weight_history_routes,
+    reminder_routes,
 )
 
 
@@ -44,6 +45,7 @@ app.include_router(analytics_routes.router)
 app.include_router(competition_group_routes.router)
 app.include_router(water_intake_routes.router)
 app.include_router(weight_history_routes.router)
+app.include_router(reminder_routes.router)
 
 
 @app.get("/")
